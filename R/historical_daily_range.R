@@ -137,9 +137,12 @@ historical_daily_range.swmpr <- function(swmpr_in
   if(attr(dat, 'qaqc_cols'))
     warning('QAQC columns present. QAQC not performed before analysis.')
 
-  # Filter to historic range
-  dat <- dat %>% dplyr::filter(lubridate::year(.data$datetimestamp) >= rng[[1]]
-                               & lubridate::year(.data$datetimestamp) <= rng[[2]])
+  # Filter to target year and/or historic range
+  # this works at least for a character vector of 2 hist_rng values plus a numeric year value
+  dat <- dat %>%
+    dplyr::filter(lubridate::year(.data$datetimestamp) == target_yr |
+                    dplyr::between(lubridate::year(.data$datetimestamp),
+                            as.numeric(rng[[1]]), as.numeric(rng[[2]])))
 
   # Assign date for determining daily stat value
   dat$date <- lubridate::floor_date(dat$datetimestamp, unit = 'days')
@@ -157,6 +160,15 @@ historical_daily_range.swmpr <- function(swmpr_in
 
   dat_all$julian_day <- lubridate::yday(dat_all$date)
 
+  # Separate into historical and target year data frames
+
+  # target year
+  dat_yr <- dat_all %>% dplyr::filter(lubridate::year(date) == target_yr)
+
+  #historical; leave this one named dat_all
+  dat_all <- dat_all %>%
+    dplyr::filter(dplyr::between(lubridate::year(.data$date), as.numeric(rng[[1]]), as.numeric(rng[[2]])))
+
   # Determine average min/max/mean for each julian day (for all years together)
   dat_hist_avg <- dat_all %>%
     dplyr::group_by(!! jd) %>%
@@ -170,7 +182,7 @@ historical_daily_range.swmpr <- function(swmpr_in
                      , min = min(!!  mini, na.rm = T)
                      , max = max(!! maxi, na.rm = T))
 
-  dat_yr <- dat_all %>% dplyr::filter(lubridate::year(date) == target_yr)
+
 
   # account for missing julian days
   if(length(dat_yr[1, ] < 365)){
