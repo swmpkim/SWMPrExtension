@@ -2,3 +2,4 @@
 *.Rhistory
 packrat/lib*/
 packrat/src/
+my test script.R
